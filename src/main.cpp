@@ -48,7 +48,7 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Came
     Timer timer{"Render"};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 100;
+    constexpr auto samples_per_pixel = 1000;
     constexpr auto max_depth = 50;
 
 #pragma omp parallel for num_threads(24)
@@ -209,7 +209,7 @@ auto main(int argc, char **argv) -> int {
         return 1;
     }
 
-    constexpr auto window_width = 1200;
+    constexpr auto window_width = 1920;
     constexpr auto window_height = static_cast<int>(window_width / aspect_ratio);
     auto *window = SDL_CreateWindow("Ray Tracer",
                                     SDL_WINDOWPOS_UNDEFINED,
