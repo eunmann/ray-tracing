@@ -6,6 +6,14 @@ the plan is to follow up with optimizations to render faster and add features. F
 tracing algorithms, scaling compute power (e.g. CPU multi-threading, GPU), code optimizations, adding in different
 lighting, more geometry, etc.
 
+# Examples
+
+## Random Scene of Spheres
+
+The below scene is composed of spheres with random materials. Some spheres are moving and rendered with motion blur.
+
+![Spheres](/images/spheres.jpg)
+
 # Implementation
 
 The implementation is similar to what the series describes, except some personal flavor added in, and the

@@ -48,10 +48,10 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Came
     Timer timer{"Render"};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 2;
-    constexpr auto max_depth = 2;
+    constexpr auto samples_per_pixel = 100;
+    constexpr auto max_depth = 50;
 
-#pragma omp parallel for num_threads(32)
+#pragma omp parallel for num_threads(24)
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
 
@@ -72,7 +72,8 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Came
     timer.print();
 }
 
-auto render_to_screen(uint32_t windowId, OffscreenBuffer &offscreen_buffer, const Hittable &world, Camera &camera) {
+auto
+render_to_screen(uint32_t windowId, OffscreenBuffer &offscreen_buffer, const Hittable &world, const Camera &camera) {
     SDL_Window *window = SDL_GetWindowFromID(windowId);
     SDL_Renderer *renderer = SDL_GetRenderer(window);
     SDL_Texture *texture = SDL_CreateTexture(renderer,
@@ -118,8 +119,8 @@ auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hit
 
         case SDL_MOUSEBUTTONDOWN: {
             printf("SDL_MOUSEBUTTONDOWN\n");
-            camera.set_origin(camera.origin() + Vec3{0.1f, 0.1f, 0.1f});
-            render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
+            //camera.set_origin(camera.origin() + Vec3{0.1f, 0.1f, 0.1f});
+            //render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
             break;
         }
 
@@ -208,7 +209,7 @@ auto main(int argc, char **argv) -> int {
         return 1;
     }
 
-    constexpr auto window_width = 500;
+    constexpr auto window_width = 1200;
     constexpr auto window_height = static_cast<int>(window_width / aspect_ratio);
     auto *window = SDL_CreateWindow("Ray Tracer",
                                     SDL_WINDOWPOS_UNDEFINED,
@@ -245,18 +246,18 @@ auto main(int argc, char **argv) -> int {
     auto aperture = 0.1f;
     Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f};
 
-    auto Material_ground = std::make_shared<Lambertian>(Color{0.8f, 0.8f, 0.0f});
-    auto Material_center = std::make_shared<Lambertian>(Color{0.1f, 0.2f, 0.5f});
-    auto Material_left = std::make_shared<Dielectric>(1.5f);
-    auto Material_right = std::make_shared<Metal>(Color{0.8f, 0.6f, 0.2f}, 0.0f);
+//    auto Material_ground = std::make_shared<Lambertian>(Color{0.8f, 0.8f, 0.0f});
+//    auto Material_center = std::make_shared<Lambertian>(Color{0.1f, 0.2f, 0.5f});
+//    auto Material_left = std::make_shared<Dielectric>(1.5f);
+//    auto Material_right = std::make_shared<Metal>(Color{0.8f, 0.6f, 0.2f}, 0.0f);
 
-    //HittableList world = random_scene();
-    HittableList world;
-    world.add(make_shared<Sphere>(Point3{0.0f, -100.5f, -1.0f}, 100.0f, Material_ground));
-    world.add(make_shared<Sphere>(Point3{0.0f, 0.0f, -1.0f}, 0.5f, Material_center));
-    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, 0.5f, Material_left));
-    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, -0.45f, Material_left));
-    world.add(make_shared<Sphere>(Point3{1.0f, 0.0f, -1.0f}, 0.5f, Material_right));
+    HittableList world = random_scene();
+//    HittableList world;
+//    world.add(make_shared<Sphere>(Point3{0.0f, -100.5f, -1.0f}, 100.0f, Material_ground));
+//    world.add(make_shared<Sphere>(Point3{0.0f, 0.0f, -1.0f}, 0.5f, Material_center));
+//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, 0.5f, Material_left));
+//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, -0.45f, Material_left));
+//    world.add(make_shared<Sphere>(Point3{1.0f, 0.0f, -1.0f}, 0.5f, Material_right));
 
     auto shouldRun = true;
     while (shouldRun) {

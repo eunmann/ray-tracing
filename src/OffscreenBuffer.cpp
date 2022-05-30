@@ -62,12 +62,12 @@ auto OffscreenBuffer::set_color(int row, int col, const Color &color, const int 
     auto col_offset = col * this->m_bytes_per_pixel;
     auto *pixel = this->m_memory + row_offset + col_offset;
 
-    auto clamp = [](float value, float min, float max) {
+    auto clamp = [](float value, float min, float max) -> float {
         if (value <= min) return min;
         if (value >= max) return max;
         return value;
     };
-    auto scale = [samples_per_pixel](float color) {
+    auto scale = [samples_per_pixel](float color) -> float {
         auto scale = 1.0f / static_cast<float>(samples_per_pixel);
         return std::sqrt(scale * color);
     };
