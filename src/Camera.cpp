@@ -6,7 +6,9 @@
 
 Camera::Camera(Point3 look_from, Point3 look_at, Vec3 up_vector, float vertical_field_of_view, float aspect_ratio,
                float aperture,
-               float focus_dist) {
+               float focus_dist,
+               float time_start,
+               float time_end) {
 
     auto theta = UnitConversions::degrees_to_radians(vertical_field_of_view);
     auto h = std::tan(theta / 2);
@@ -27,7 +29,8 @@ Camera::Camera(Point3 look_from, Point3 look_at, Vec3 up_vector, float vertical_
             focus_dist * this->m_w;
 
     this->m_lens_radius = aperture / 2.0f;
-
+    this->m_time_start = time_start;
+    this->m_time_end = time_end;
 }
 
 auto Camera::get_origin() const -> const Point3 & {
@@ -53,5 +56,6 @@ auto Camera::get_ray(float s, float t) const -> Ray {
 
     return {this->m_origin + offset,
             this->get_lower_left_corner() + s * this->get_horizontal() + t * this->get_vertical() -
-            this->get_origin() - offset};
+            this->get_origin() - offset,
+            RNG::random_float(this->m_time_start, this->m_time_end)};
 }

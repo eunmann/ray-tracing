@@ -12,8 +12,9 @@
 #include "Lambertian.hpp"
 #include "Metal.hpp"
 #include "Dielectric.hpp"
+#include "MovingSphere.hpp"
 
-constexpr auto aspect_ratio = 3.0f / 2.0f;
+constexpr auto aspect_ratio = 16.0f / 9.0f;
 const float infinity = std::numeric_limits<float>::infinity();
 const float pi = 3.1415926535897932385f;
 
@@ -27,7 +28,8 @@ auto ray_Color(const Ray &ray, const Hittable &world, const int depth) -> Color 
     // t=0.001 to ignore hits very near 0 to remove shadow acne
     if (world.hit(ray, 0.001f, infinity, hit_record)) {
         Ray scattered{{},
-                      {}};
+                      {},
+                      ray.time()};
         Color attenuation;
         if (hit_record.material->scatter(ray, hit_record, attenuation, scattered)) {
             return attenuation * ray_Color(scattered, world, depth - 1);
@@ -49,10 +51,10 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world) -> void {
     Vec3 up_vector(0.0f, 1.0f, 0.0f);
     auto dist_to_focus = 10.0f;
     auto aperture = 0.1f;
-    Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus};
+    Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 500;
+    constexpr auto samples_per_pixel = 100;
     constexpr auto max_depth = 50;
 
 #pragma omp parallel for num_threads(16)
@@ -157,23 +159,25 @@ HittableList random_scene() {
             Point3 center(a + 0.9f * RNG::random_float(), 0.2f, b + 0.9f * RNG::random_float());
 
             if ((center - Point3(4.0f, 0.2f, 0.0f)).length() > 0.9f) {
-                std::shared_ptr<Material> Sphere_Material;
+                std::shared_ptr<Material> sphere_material;
 
                 if (choose_mat < 0.8f) {
                     // diffuse
                     auto albedo = Color::random() * Color::random();
-                    Sphere_Material = std::make_shared<Lambertian>(albedo);
-                    world.add(make_shared<Sphere>(center, 0.2f, Sphere_Material));
+                    sphere_material = std::make_shared<Lambertian>(albedo);
+                    auto center_end = center + Vec3{0.0f, RNG::random_float(0.0f, 0.5f), 0.0f};
+                    world.add(make_shared<MovingSphere>(center, center_end, 0.0f, 1.0f, 0.2f, sphere_material));
+
                 } else if (choose_mat < 0.95f) {
                     // Metal
                     auto albedo = Color::random(0.5f, 1.0f);
                     auto fuzz = RNG::random_float(0.0f, 0.5f);
-                    Sphere_Material = std::make_shared<Metal>(albedo, fuzz);
-                    world.add(make_shared<Sphere>(center, 0.2f, Sphere_Material));
+                    sphere_material = std::make_shared<Metal>(albedo, fuzz);
+                    world.add(make_shared<Sphere>(center, 0.2f, sphere_material));
                 } else {
                     // glass
-                    Sphere_Material = std::make_shared<Dielectric>(1.5f);
-                    world.add(make_shared<Sphere>(center, 0.2f, Sphere_Material));
+                    sphere_material = std::make_shared<Dielectric>(1.5f);
+                    world.add(make_shared<Sphere>(center, 0.2f, sphere_material));
                 }
             }
         }
@@ -191,6 +195,8 @@ HittableList random_scene() {
     return world;
 }
 
+// 4.0
+
 auto main(int argc, char **argv) -> int {
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -198,7 +204,7 @@ auto main(int argc, char **argv) -> int {
         return 1;
     }
 
-    constexpr auto window_width = 1200;
+    constexpr auto window_width = 500;
     constexpr auto window_height = static_cast<int>(window_width / aspect_ratio);
     auto *window = SDL_CreateWindow("Ray Tracer",
                                     SDL_WINDOWPOS_UNDEFINED,

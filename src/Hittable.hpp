@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Ray.hpp"
+#include "AxisAlignedBoundingBox.hpp"
 #include <memory>
 
 class Material;
@@ -21,7 +22,11 @@ struct HitRecord {
 
 class Hittable {
 public:
-    [[nodiscard]] virtual auto hit(const Ray &ray, float t_min, float t_max, HitRecord &hit_record) const -> bool = 0;
+    [[nodiscard]] virtual auto
+    hit(const Ray &ray, float time_min, float time_max, HitRecord &hit_record) const -> bool = 0;
+
+    [[nodiscard]] virtual auto
+    bounding_box(float time_start, float time_end, AxisAlignedBoundingBox &&output_box) const -> bool = 0;
 };
 
 

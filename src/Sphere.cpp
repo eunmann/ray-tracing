@@ -35,3 +35,12 @@ auto Sphere::hit(const Ray &ray, float t_min, float t_max, HitRecord &hit_record
 
     return true;
 }
+
+auto Sphere::bounding_box(float time_start, float time_end, AxisAlignedBoundingBox &&output_box) const -> bool {
+
+    output_box = {
+            this->m_center - Vec3{this->m_radius, this->m_radius, this->m_radius},
+            this->m_center + Vec3{this->m_radius, this->m_radius, this->m_radius}
+    };
+    return true;
+}

@@ -13,8 +13,10 @@ public:
                     float vertical_field_of_view,
                     float aspect_ratio,
                     float aperture,
-                    float focus_dist);
-    
+                    float focus_dist,
+                    float time_start,
+                    float time_end);
+
     [[nodiscard]] auto get_origin() const -> const Point3 &;
 
     [[nodiscard]] auto get_horizontal() const -> const Vec3 &;
@@ -34,6 +36,9 @@ private:
     Vec3 m_v;
     Vec3 m_w;
     float m_lens_radius;
+    // Shutter Open/Close times
+    float m_time_start;
+    float m_time_end;
 };
 
 
