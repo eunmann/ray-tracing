@@ -43,22 +43,16 @@ auto ray_Color(const Ray &ray, const Hittable &world, const int depth) -> Color 
 
 }
 
-auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world) -> void {
+auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Camera &camera) -> void {
 
     Timer timer{"Render"};
-    Point3 look_from(13.0f, 2.0f, 3.0f);
-    Point3 look_at(0.0f, 0.0f, 0.0f);
-    Vec3 up_vector(0.0f, 1.0f, 0.0f);
-    auto dist_to_focus = 10.0f;
-    auto aperture = 0.1f;
-    Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 100;
-    constexpr auto max_depth = 50;
+    constexpr auto samples_per_pixel = 2;
+    constexpr auto max_depth = 2;
 
-#pragma omp parallel for num_threads(16)
-    for (int row = height - 1; row >= 0; row--) {
+#pragma omp parallel for num_threads(32)
+    for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
 
             auto color = Color{};
@@ -78,13 +72,54 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world) -> void {
     timer.print();
 }
 
-auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hittable &world) -> bool {
+auto render_to_screen(uint32_t windowId, OffscreenBuffer &offscreen_buffer, const Hittable &world, Camera &camera) {
+    SDL_Window *window = SDL_GetWindowFromID(windowId);
+    SDL_Renderer *renderer = SDL_GetRenderer(window);
+    SDL_Texture *texture = SDL_CreateTexture(renderer,
+                                             SDL_PIXELFORMAT_RGBA32,
+                                             SDL_TEXTUREACCESS_STREAMING,
+                                             offscreen_buffer.get_width(),
+                                             offscreen_buffer.get_height());
+
+    if (texture == nullptr) {
+        printf("Failed to allocate texture\n");
+    }
+
+    render(offscreen_buffer, world, camera);
+
+    auto pitch = offscreen_buffer.get_width() * offscreen_buffer.get_bytes_per_pixel();
+    if (SDL_UpdateTexture(texture,
+                          nullptr,
+                          offscreen_buffer.get_memory(),
+                          pitch)) {
+        printf("Failed to update texture\n");
+    }
+
+    SDL_RenderCopy(renderer,
+                   texture,
+                   nullptr,
+                   nullptr);
+    SDL_RenderPresent(renderer);
+
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+}
+
+auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hittable &world, Camera &camera) -> bool {
     auto shouldRun = true;
 
     switch (Event->type) {
         case SDL_QUIT: {
             printf("SDL_QUIT\n");
             shouldRun = false;
+            break;
+        }
+
+        case SDL_MOUSEBUTTONDOWN: {
+            printf("SDL_MOUSEBUTTONDOWN\n");
+            camera.set_origin(camera.origin() + Vec3{0.1f, 0.1f, 0.1f});
+            render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
             break;
         }
 
@@ -100,43 +135,12 @@ auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hit
 
                 case SDL_WINDOWEVENT_EXPOSED: {
                     printf("SDL_WINDOWEVENT_EXPOSED\n");
-                    SDL_Window *window = SDL_GetWindowFromID(Event->window.windowID);
-                    SDL_Renderer *renderer = SDL_GetRenderer(window);
-                    SDL_Texture *texture = SDL_CreateTexture(renderer,
-                                                             SDL_PIXELFORMAT_RGBA32,
-                                                             SDL_TEXTUREACCESS_STREAMING,
-                                                             offscreen_buffer.get_width(),
-                                                             offscreen_buffer.get_height());
-
-                    if (texture == nullptr) {
-                        printf("Failed to allocate texture\n");
-                    }
 
                     static auto shouldRender = true;
-
                     if (shouldRender) {
                         shouldRender = false;
-                        render(offscreen_buffer, world);
+                        render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
                     }
-
-                    auto pitch = offscreen_buffer.get_width() * offscreen_buffer.get_bytes_per_pixel();
-                    if (SDL_UpdateTexture(texture,
-                                          nullptr,
-                                          offscreen_buffer.get_memory(),
-                                          pitch)) {
-                        printf("Failed to update texture\n");
-                    }
-
-                    SDL_RenderCopy(renderer,
-                                   texture,
-                                   nullptr,
-                                   nullptr);
-                    SDL_RenderPresent(renderer);
-
-                    if (texture) {
-                        SDL_DestroyTexture(texture);
-                    }
-
                     break;
                 }
             }
@@ -147,7 +151,7 @@ auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hit
     return shouldRun;
 }
 
-HittableList random_scene() {
+auto random_scene() -> HittableList {
     HittableList world;
 
     auto ground_Material = std::make_shared<Lambertian>(Color(0.5f, 0.5f, 0.5f));
@@ -234,23 +238,31 @@ auto main(int argc, char **argv) -> int {
             bytes_per_pixel
     };
 
-//    auto Material_ground = std::make_shared<Lambertian>(Color{0.8f, 0.8f, 0.0f});
-//    auto Material_center = std::make_shared<Lambertian>(Color{0.1f, 0.2f, 0.5f});
-//    auto Material_left = std::make_shared<Dielectric>(1.5f);
-//    auto Material_right = std::make_shared<Metal>(Color{0.8f, 0.6f, 0.2f}, 0.0f);
+    Point3 look_from(13.0f, 2.0f, 3.0f);
+    Point3 look_at(0.0f, 0.0f, 0.0f);
+    Vec3 up_vector(0.0f, 1.0f, 0.0f);
+    auto dist_to_focus = 10.0f;
+    auto aperture = 0.1f;
+    Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f};
 
-    HittableList world = random_scene();
-//    world.add(make_shared<Sphere>(Point3{0.0f, -100.5f, -1.0f}, 100.0f, Material_ground));
-//    world.add(make_shared<Sphere>(Point3{0.0f, 0.0f, -1.0f}, 0.5f, Material_center));
-//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, 0.5f, Material_left));
-//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, -0.45f, Material_left));
-//    world.add(make_shared<Sphere>(Point3{1.0f, 0.0f, -1.0f}, 0.5f, Material_right));
+    auto Material_ground = std::make_shared<Lambertian>(Color{0.8f, 0.8f, 0.0f});
+    auto Material_center = std::make_shared<Lambertian>(Color{0.1f, 0.2f, 0.5f});
+    auto Material_left = std::make_shared<Dielectric>(1.5f);
+    auto Material_right = std::make_shared<Metal>(Color{0.8f, 0.6f, 0.2f}, 0.0f);
+
+    //HittableList world = random_scene();
+    HittableList world;
+    world.add(make_shared<Sphere>(Point3{0.0f, -100.5f, -1.0f}, 100.0f, Material_ground));
+    world.add(make_shared<Sphere>(Point3{0.0f, 0.0f, -1.0f}, 0.5f, Material_center));
+    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, 0.5f, Material_left));
+    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, -0.45f, Material_left));
+    world.add(make_shared<Sphere>(Point3{1.0f, 0.0f, -1.0f}, 0.5f, Material_right));
 
     auto shouldRun = true;
     while (shouldRun) {
         SDL_Event Event;
         SDL_WaitEvent(&Event);
-        shouldRun = handle_event(&Event, offscreen_buffer, world);
+        shouldRun = handle_event(&Event, offscreen_buffer, world, camera);
     }
 
     SDL_Quit();

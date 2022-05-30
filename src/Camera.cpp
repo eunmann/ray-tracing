@@ -33,19 +33,19 @@ Camera::Camera(Point3 look_from, Point3 look_at, Vec3 up_vector, float vertical_
     this->m_time_end = time_end;
 }
 
-auto Camera::get_origin() const -> const Point3 & {
+auto Camera::origin() const -> const Point3 & {
     return m_origin;
 }
 
-auto Camera::get_horizontal() const -> const Vec3 & {
+auto Camera::horizontal() const -> const Vec3 & {
     return m_horizontal;
 }
 
-auto Camera::get_vertical() const -> const Vec3 & {
+auto Camera::vertical() const -> const Vec3 & {
     return m_vertical;
 }
 
-auto Camera::get_lower_left_corner() const -> const Vec3 & {
+auto Camera::lower_left_corner() const -> const Vec3 & {
     return m_lower_left_corner;
 }
 
@@ -55,7 +55,11 @@ auto Camera::get_ray(float s, float t) const -> Ray {
     auto offset = this->m_u * ray_direction.x() + this->m_v * ray_direction.y();
 
     return {this->m_origin + offset,
-            this->get_lower_left_corner() + s * this->get_horizontal() + t * this->get_vertical() -
-            this->get_origin() - offset,
+            this->lower_left_corner() + s * this->horizontal() + t * this->vertical() -
+            this->origin() - offset,
             RNG::random_float(this->m_time_start, this->m_time_end)};
+}
+
+auto Camera::set_origin(const Point3 &origin) -> void {
+    this->m_origin = origin;
 }

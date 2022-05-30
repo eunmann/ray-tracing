@@ -17,13 +17,15 @@ public:
                     float time_start,
                     float time_end);
 
-    [[nodiscard]] auto get_origin() const -> const Point3 &;
+    [[nodiscard]] auto origin() const -> const Point3 &;
 
-    [[nodiscard]] auto get_horizontal() const -> const Vec3 &;
+    auto set_origin(const Point3 &origin) -> void;
 
-    [[nodiscard]] auto get_vertical() const -> const Vec3 &;
+    [[nodiscard]] auto horizontal() const -> const Vec3 &;
 
-    [[nodiscard]] auto get_lower_left_corner() const -> const Vec3 &;
+    [[nodiscard]] auto vertical() const -> const Vec3 &;
+
+    [[nodiscard]] auto lower_left_corner() const -> const Vec3 &;
 
     [[nodiscard]] auto get_ray(float s, float t) const -> Ray;
 
