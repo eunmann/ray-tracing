@@ -13,6 +13,8 @@
 #include "Metal.hpp"
 #include "Dielectric.hpp"
 #include "MovingSphere.hpp"
+#include "CheckerTexture.hpp"
+#include "NoiseTexture.hpp"
 
 constexpr auto aspect_ratio = 16.0f / 9.0f;
 const float infinity = std::numeric_limits<float>::infinity();
@@ -48,7 +50,7 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Came
     Timer timer{"Render"};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 1000;
+    constexpr auto samples_per_pixel = 100;
     constexpr auto max_depth = 50;
 
 #pragma omp parallel for num_threads(24)
@@ -156,7 +158,9 @@ auto random_scene() -> HittableList {
     HittableList world;
 
     auto ground_Material = std::make_shared<Lambertian>(Color(0.5f, 0.5f, 0.5f));
-    world.add(make_shared<Sphere>(Point3(0.0f, -1000.0f, 0.0f), 1000.0f, ground_Material));
+
+    auto checker = std::make_shared<CheckerTexture>(Color{0.2f, 0.3f, 0.1f}, Color{0.9f, 0.9f, 0.9f});
+    world.add(std::make_shared<Sphere>(Point3(0.0f, -1000.0f, 0.0f), 1000.0f, std::make_shared<Lambertian>(checker)));
 
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
@@ -200,6 +204,31 @@ auto random_scene() -> HittableList {
     return world;
 }
 
+auto two_spheres() -> HittableList {
+    HittableList objects;
+
+    auto checker = std::make_shared<CheckerTexture>(Color{0.2f, 0.3f, 0.1f}, Color{0.9f, 0.9f, 0.9f});
+
+    objects.add(std::make_shared<Sphere>(Point3{0.0f, -10.0f, 0.0f}, 10.0f, std::make_shared<Lambertian>(checker)));
+    objects.add(std::make_shared<Sphere>(Point3{0.0f, 10.0f, 0.0f}, 10.0f, std::make_shared<Lambertian>(checker)));
+
+    return objects;
+}
+
+auto two_perlin_spheres() -> HittableList {
+    HittableList objects;
+
+    auto noise_texture = std::make_shared<NoiseTexture>();
+
+    objects.add(
+            std::make_shared<Sphere>(Point3{0.0f, -1000.0f, 0.0f}, 1000.0f,
+                                     std::make_shared<Lambertian>(noise_texture)));
+    objects.add(
+            std::make_shared<Sphere>(Point3{0.0f, 2.0f, 0.0f}, 2.0f, std::make_shared<Lambertian>(noise_texture)));
+
+    return objects;
+}
+
 // 4.0
 
 auto main(int argc, char **argv) -> int {
@@ -209,7 +238,7 @@ auto main(int argc, char **argv) -> int {
         return 1;
     }
 
-    constexpr auto window_width = 1920;
+    constexpr auto window_width = 400;
     constexpr auto window_height = static_cast<int>(window_width / aspect_ratio);
     auto *window = SDL_CreateWindow("Ray Tracer",
                                     SDL_WINDOWPOS_UNDEFINED,
@@ -241,23 +270,40 @@ auto main(int argc, char **argv) -> int {
 
     Point3 look_from(13.0f, 2.0f, 3.0f);
     Point3 look_at(0.0f, 0.0f, 0.0f);
-    Vec3 up_vector(0.0f, 1.0f, 0.0f);
+    auto aperture = 0.0f;
+    auto vertical_field_of_view = 40.0f;
+    HittableList world;
+
+    switch (2) {
+        case 0: {
+            world = random_scene();
+            look_from = {13.0f, 2.0f, 3.0f};
+            look_at = {0.0f, 0.0f, 0.0f};
+            vertical_field_of_view = 20.0f;
+            break;
+        }
+
+        case 1: {
+            world = two_spheres();
+            look_from = {13.0f, 2.0f, 3.0f};
+            look_at = {0.0f, 0.0f, 0.0f};
+            vertical_field_of_view = 20.0f;
+            break;
+        }
+
+        case 2: {
+            world = two_perlin_spheres();
+            look_from = {13.0f, 2.0f, 3.0f};
+            look_at = {0.0f, 0.0f, 0.0f};
+            vertical_field_of_view = 20.0f;
+            break;
+        }
+    }
+
     auto dist_to_focus = 10.0f;
-    auto aperture = 0.1f;
-    Camera camera{look_from, look_at, up_vector, 20.0f, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f};
-
-//    auto Material_ground = std::make_shared<Lambertian>(Color{0.8f, 0.8f, 0.0f});
-//    auto Material_center = std::make_shared<Lambertian>(Color{0.1f, 0.2f, 0.5f});
-//    auto Material_left = std::make_shared<Dielectric>(1.5f);
-//    auto Material_right = std::make_shared<Metal>(Color{0.8f, 0.6f, 0.2f}, 0.0f);
-
-    HittableList world = random_scene();
-//    HittableList world;
-//    world.add(make_shared<Sphere>(Point3{0.0f, -100.5f, -1.0f}, 100.0f, Material_ground));
-//    world.add(make_shared<Sphere>(Point3{0.0f, 0.0f, -1.0f}, 0.5f, Material_center));
-//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, 0.5f, Material_left));
-//    world.add(make_shared<Sphere>(Point3{-1.0f, 0.0f, -1.0f}, -0.45f, Material_left));
-//    world.add(make_shared<Sphere>(Point3{1.0f, 0.0f, -1.0f}, 0.5f, Material_right));
+    Vec3 up_vector(0.0f, 1.0f, 0.0f);
+    Camera camera{look_from, look_at, up_vector, vertical_field_of_view, aspect_ratio, aperture, dist_to_focus, 0.0f,
+                  1.0f};
 
     auto shouldRun = true;
     while (shouldRun) {
