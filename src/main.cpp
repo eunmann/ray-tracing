@@ -218,7 +218,7 @@ auto two_spheres() -> HittableList {
 auto two_perlin_spheres() -> HittableList {
     HittableList objects;
 
-    auto noise_texture = std::make_shared<NoiseTexture>();
+    auto noise_texture = std::make_shared<NoiseTexture>(4);
 
     objects.add(
             std::make_shared<Sphere>(Point3{0.0f, -1000.0f, 0.0f}, 1000.0f,
@@ -229,7 +229,7 @@ auto two_perlin_spheres() -> HittableList {
     return objects;
 }
 
-// 4.0
+// 5.2
 
 auto main(int argc, char **argv) -> int {
 
