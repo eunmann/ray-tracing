@@ -15,6 +15,8 @@
 #include "MovingSphere.hpp"
 #include "CheckerTexture.hpp"
 #include "NoiseTexture.hpp"
+#include "ImageTexture.hpp"
+#include "STB.h"
 
 constexpr auto aspect_ratio = 16.0f / 9.0f;
 const float infinity = std::numeric_limits<float>::infinity();
@@ -50,8 +52,8 @@ auto render(OffscreenBuffer &offscreen_buffer, const Hittable &world, const Came
     Timer timer{"Render"};
     auto width = offscreen_buffer.get_width();
     auto height = offscreen_buffer.get_height();
-    constexpr auto samples_per_pixel = 100;
-    constexpr auto max_depth = 50;
+    constexpr auto samples_per_pixel = 15;
+    constexpr auto max_depth = 5;
 
 #pragma omp parallel for num_threads(24)
     for (int row = 0; row < height; row++) {
@@ -121,8 +123,15 @@ auto handle_event(SDL_Event *Event, OffscreenBuffer &offscreen_buffer, const Hit
 
         case SDL_MOUSEBUTTONDOWN: {
             printf("SDL_MOUSEBUTTONDOWN\n");
-            //camera.set_origin(camera.origin() + Vec3{0.1f, 0.1f, 0.1f});
-            //render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
+            camera.set_origin(1.5f * (camera.origin() - Vec3{0.1f, 0.1f, 0.1f}));
+            render_to_screen(Event->window.windowID, offscreen_buffer, world, camera);
+
+            /*
+            static int counter = 0;
+            auto filename = "../output/images/" + std::to_string(counter++) + ".jpg";
+            stbi_write_jpg(filename.c_str(), offscreen_buffer.get_width(), offscreen_buffer.get_height(),
+                           STBI_rgb_alpha, offscreen_buffer.get_memory(), 100);
+                           */
             break;
         }
 
@@ -229,6 +238,14 @@ auto two_perlin_spheres() -> HittableList {
     return objects;
 }
 
+auto earth() -> HittableList {
+    auto earth_texture = std::make_shared<ImageTexture>("../image_textures/earthmap.jpg");
+    auto earth_surface = std::make_shared<Lambertian>(earth_texture);
+    auto globe = std::make_shared<Sphere>(Point3{0.0f, 0.0f, 0.0f}, 2.0f, earth_surface);
+
+    return HittableList(globe);
+}
+
 // 5.2
 
 auto main(int argc, char **argv) -> int {
@@ -274,8 +291,8 @@ auto main(int argc, char **argv) -> int {
     auto vertical_field_of_view = 40.0f;
     HittableList world;
 
-    switch (2) {
-        case 0: {
+    switch (0) {
+        case 1: {
             world = random_scene();
             look_from = {13.0f, 2.0f, 3.0f};
             look_at = {0.0f, 0.0f, 0.0f};
@@ -283,7 +300,7 @@ auto main(int argc, char **argv) -> int {
             break;
         }
 
-        case 1: {
+        case 2: {
             world = two_spheres();
             look_from = {13.0f, 2.0f, 3.0f};
             look_at = {0.0f, 0.0f, 0.0f};
@@ -291,13 +308,21 @@ auto main(int argc, char **argv) -> int {
             break;
         }
 
-        case 2: {
+        case 3: {
             world = two_perlin_spheres();
             look_from = {13.0f, 2.0f, 3.0f};
             look_at = {0.0f, 0.0f, 0.0f};
             vertical_field_of_view = 20.0f;
             break;
         }
+
+        default:
+        case 4:
+            world = earth();
+            look_from = {13.0f, 2.0f, 3.0f};
+            look_at = {0.0f, 0.0f, 0.0f};
+            vertical_field_of_view = 20.0;
+            break;
     }
 
     auto dist_to_focus = 10.0f;

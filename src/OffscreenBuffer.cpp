@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include "OffscreenBuffer.hpp"
 #include <cmath>
+#include "MathUtils.hpp"
 
 auto OffscreenBuffer::get_memory() const -> unsigned char * {
     return m_memory;
@@ -62,19 +63,14 @@ auto OffscreenBuffer::set_color(int row, int col, const Color &color, const int 
     auto col_offset = col * this->m_bytes_per_pixel;
     auto *pixel = this->m_memory + row_offset + col_offset;
 
-    auto clamp = [](float value, float min, float max) -> float {
-        if (value <= min) return min;
-        if (value >= max) return max;
-        return value;
-    };
     auto scale = [samples_per_pixel](float color) -> float {
         auto scale = 1.0f / static_cast<float>(samples_per_pixel);
         return std::sqrt(scale * color);
     };
 
-    auto transform_color = [&scale, &clamp](float color) -> unsigned char {
+    auto transform_color = [&scale](float color) -> unsigned char {
         color = scale(color);
-        color = clamp(color, 0.0f, 1.0f) * 255.0f;
+        color = MathUtils::clamp(color, 0.0f, 1.0f) * 255.0f;
         return static_cast<unsigned char>(color);
     };
 
